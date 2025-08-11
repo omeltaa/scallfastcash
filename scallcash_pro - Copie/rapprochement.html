@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCALLCASH - Rapprochement</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="transactions">
+  <nav class="navbar">
+    <a href="index.html" class="logo">
+      <span class="icon">€</span>
+      SCALLCASH
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Dashboard</a>
+      <a href="comptage.html">Comptage 24h</a>
+      <a href="ventes.html">Ventes &amp; Encaissements</a>
+      <a href="achats.html">Achats &amp; Dépenses</a>
+      <a href="facturation.html">Facturation</a>
+      <a href="rapprochement.html" class="active">Rapprochement</a>
+      <a href="tva.html">TVA &amp; Exports</a>
+    </div>
+  </nav>
+  <div class="expenses-page">
+    <div class="expenses-main">
+      <div class="expenses-kpis">
+        <div class="card">
+          <h3>Lignes à catégoriser</h3>
+          <div class="value" id="kpi_trans_categoriser">0</div>
+        </div>
+        <div class="card">
+          <h3>Lignes à valider</h3>
+          <div class="value" id="kpi_trans_valider">0</div>
+        </div>
+        <div class="card">
+          <h3>Montant total (vue)</h3>
+          <div class="value" id="kpi_trans_amount">0 €</div>
+        </div>
+        <div class="card">
+          <h3>Nombre de lignes</h3>
+          <div class="value" id="kpi_trans_lines">0</div>
+        </div>
+      </div>
+      <div class="expenses-toolbar">
+        <button class="btn secondary" id="importTransBtn">Import CSV banque</button>
+        <button class="btn secondary" id="saveTransViewBtn">Sauvegarder vue</button>
+        <button class="btn secondary" id="exportTransBtn">Export CSV</button>
+        <select id="filter_trans_site" class="btn secondary">
+          <option value="">Tous sites</option>
+        </select>
+        <select id="filter_trans_status" class="btn secondary">
+          <option value="">Tous statuts</option>
+        </select>
+        <input id="search_trans_input" type="text" placeholder="Rechercher libellé" style="flex:1;min-width:200px;padding:0.4rem 0.8rem;border:1px solid #d8dee9;border-radius:8px;font-size:0.85rem;" />
+      </div>
+      <div class="expenses-table-container">
+        <table class="expenses-table" id="transactionsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Libellé</th>
+              <th>Montant</th>
+              <th>Site</th>
+              <th>Statut</th>
+              <th>Liaisons</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="expenses-sidebar transactions-sidebar">
+      <div class="sidebar-header">
+        <h3>Détail transaction</h3>
+        <button onclick="document.querySelector('.transactions-sidebar').classList.remove('open');document.querySelector('.overlay').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-field">
+          <label>Libellé</label>
+          <input id="trans_detail_label" type="text" readonly />
+        </div>
+        <div class="sidebar-field">
+          <label>Date</label>
+          <input id="trans_detail_date" type="date" readonly />
+        </div>
+        <div class="sidebar-field">
+          <label>Montant</label>
+          <div id="trans_detail_amount">0 €</div>
+        </div>
+        <div class="sidebar-field">
+          <label>Site</label>
+          <input id="trans_detail_site" type="text" readonly />
+        </div>
+        <div class="sidebar-field">
+          <label>Statut</label>
+          <input id="trans_detail_status" type="text" readonly />
+        </div>
+        <div class="sidebar-field">
+          <label>Liaisons</label>
+          <div id="trans_detail_matches">0</div>
+        </div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn validate" onclick="validateTransaction()">Étape suivante</button>
+        <button class="btn pay" onclick="markReconciled()">Marquer rapproché</button>
+      </div>
+    </div>
+    <div class="overlay"></div>
+  </div>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
