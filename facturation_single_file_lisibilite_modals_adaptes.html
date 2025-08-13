@@ -1,0 +1,453 @@
+<!-- import re -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCALLCASH — Facturation (single‑file)</title>
+  <style>
+    /* ==========================
+       THEME (Light / Dark)
+       ========================== */
+    :root{
+      --ink:#0b2f5b; --accent:#f97316; --muted:#6b7280; --text:#0f172a; --line:#e5e7eb; --bg:#f6f7fb;
+      --surface:rgba(255,255,255,.72); --surface-2:rgba(255,255,255,.88);
+      --shadow:0 10px 25px rgba(2,6,23,.10); --shadow-lg:0 22px 44px rgba(2,6,23,.18);
+      --ring:0 0 0 3px rgba(11,47,91,.15); --radius:16px;
+      --card-grad:linear-gradient(180deg,#f8fafc,#ffffff);
+      --tbl-head:#ffffff;
+    }
+    :root[data-theme="dark"]{
+      --ink:#9ec5ff; --accent:#ffb266; --muted:#9aa4b2; --text:#e5e7eb; --line:#273244; --bg:#0b1220;
+      --surface:rgba(28,35,53,.72); --surface-2:rgba(28,35,53,.88);
+      --shadow:0 10px 25px rgba(0,0,0,.35); --shadow-lg:0 22px 44px rgba(0,0,0,.5);
+      --ring:0 0 0 3px rgba(158,197,255,.25);
+      --card-grad:linear-gradient(180deg,#111827,#0b1220);
+      --tbl-head:#0f172a;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme]){ /* bascule auto si l'utilisateur préfère le dark */
+        --ink:#9ec5ff; --accent:#ffb266; --muted:#9aa4b2; --text:#e5e7eb; --line:#273244; --bg:#0b1220;
+        --surface:rgba(28,35,53,.72); --surface-2:rgba(28,35,53,.88);
+        --shadow:0 10px 25px rgba(0,0,0,.35); --shadow-lg:0 22px 44px rgba(0,0,0,.5);
+        --ring:0 0 0 3px rgba(158,197,255,.25);
+        --card-grad:linear-gradient(180deg,#111827,#0b1220);
+        --tbl-head:#0f172a;
+      }
+    }
+
+    /* ==========================
+       RESET / BASE
+       ========================== */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif;color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 8% -10%, rgba(11,47,91,.10), transparent 60%),
+        radial-gradient(1000px 520px at 110% 15%, rgba(249,115,22,.10), transparent 60%),
+        linear-gradient(180deg, #f9fafb 0%, #f3f4f8 100%);
+      background-attachment: fixed;
+    }
+    :root[data-theme="dark"] body,
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme]) body{background:radial-gradient(1000px 520px at 110% 15%, rgba(158,197,255,.08), transparent 60%), linear-gradient(180deg,#0b1220 0%, #0a1020 100%);} }
+
+    .wrap{max-width:1180px;margin:24px auto;padding:0 16px}
+
+    .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 18px}
+    .toolbar .spacer{flex:1}
+
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.68rem 1rem;border-radius:12px;border:1px solid var(--line);cursor:pointer;background:var(--ink);color:#fff;box-shadow:var(--shadow);transition:transform .08s ease, box-shadow .2s ease}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+    .btn:active{transform:translateY(0)}
+    .btn.secondary{background:var(--surface-2);color:var(--ink)}
+    .btn.secondary:hover{background:rgba(255,255,255,.98)}
+    .btn.ghost{background:transparent;color:var(--ink)}
+    .btn.danger{background:#ef4444;border-color:transparent}
+
+    h1{margin:0;font-size:1.25rem;color:var(--ink)}
+
+    .grid-3{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+    @media (max-width:900px){.grid-3{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:640px){.grid-3{grid-template-columns:1fr}}
+
+    .card{background:var(--surface);border:1px solid var(--line);backdrop-filter:blur(8px);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    .card:hover{box-shadow:var(--shadow-lg)}
+    .card h3{margin:0 0 8px;color:var(--ink)}
+    .value{font-size:1.85rem;font-weight:800}
+
+    /* Readability for labels & inputs */
+    label{display:block;font-size:1rem;font-weight:600;color:#334155;margin:6px 0 6px;letter-spacing:.2px}
+    :root[data-theme="dark"] label{color:#9aa4b2}
+    input,select,textarea{width:100%;padding:.85rem 1rem;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:#0f172a;outline:none;transition:border-color .15s,box-shadow .15s,background .15s,transform .05s;font-size:1.05rem;line-height:1.5;min-height:48px;caret-color:var(--ink);font-variant-numeric:tabular-nums}
+    :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea{background:#0f172a;color:#e5e7eb;border-color:#1f2a3d}
+    input::placeholder,textarea::placeholder{color:#94a3b8;opacity:.9}
+    input:focus,select:focus,textarea:focus{border-color:#c7d2fe;box-shadow:var(--ring)}
+
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface);backdrop-filter:blur(6px);box-shadow:var(--shadow)}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-size:.95rem}
+    thead th{position:sticky;top:0;z-index:1;background:var(--tbl-head);text-align:left;padding:12px;border-bottom:1px solid var(--line);font-weight:700;color:#0f172a}
+    :root[data-theme="dark"] thead th{color:#e5e7eb}
+    tbody td{padding:12px;border-bottom:1px solid var(--line);vertical-align:middle;color:#0f172a}
+    :root[data-theme="dark"] tbody td{color:#e5e7eb}
+    tbody tr:hover{background:rgba(2,6,23,.04)}
+    :root[data-theme="dark"] tbody tr:hover{background:rgba(255,255,255,.05)}
+    .right{text-align:right}
+
+    .badge{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.78rem;font-weight:600;border:1px solid transparent}
+    .badge.pending{background:#fff7ed;color:#a16207;border-color:#fed7aa}
+    .badge.sent{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+    .badge.paid{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+
+    /* ==========================
+       OVERLAYS / MODALS (responsive & scrollable)
+       ========================== */
+    .overlay{position:fixed;inset:0;background:rgba(2,6,23,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    .overlay[aria-hidden="false"]{display:flex}
+    .modal{background:var(--surface-2);border:1px solid var(--line);border-radius:20px;width:min(1040px,96vw);max-height:92vh;overflow:auto;box-shadow:var(--shadow-lg);padding:18px;scrollbar-gutter:stable both-edges}
+    @media (max-width:560px){
+      .modal{width:100vw;height:100vh;max-height:none;border-radius:0;padding:14px}
+    }
+
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:760px){.grid{grid-template-columns:1fr}}
+    .title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+
+    .stepper{display:flex;gap:.6rem;list-style:none;margin:0;padding:0;font-size:.9rem;color:#64748b}
+    .stepper li{padding:.35rem .6rem;border-radius:999px;background:#f1f5f9}
+    :root[data-theme="dark"] .stepper li{background:#0f172a}
+
+    .row{display:grid;grid-template-columns:2fr .7fr 1fr .9fr auto;gap:10px;align-items:center;margin:.35rem 0}
+    .row input,.row select{height:auto;min-height:48px}
+
+    .summary{background:var(--card-grad);border:1px dashed var(--line);border-radius:12px;padding:10px;font-size:1rem;line-height:1.6}
+
+    #search{padding:.85rem 1rem;border:1.5px solid var(--line);border-radius:12px;min-width:260px;background:#fff}
+    :root[data-theme="dark"] #search{background:#0f172a;color:#e5e7eb}
+
+    .mini{padding:.45rem .65rem;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+    :root[data-theme="dark"] .mini{background:#0f172a;color:#e5e7eb;border-color:#1f2a3d}
+
+    .kpi{font-weight:800}
+
+    /* Theme switch */
+    .theme{border-radius:12px;border:1px solid var(--line);background:var(--surface-2);padding:.5rem .7rem;cursor:pointer}
+
+    /* Textareas comfortable */
+    textarea{min-height:140px;max-height:min(70vh,600px);resize:vertical;line-height:1.6}
+    textarea::-webkit-resizer{display:none}
+
+    @media (max-width:640px){
+      input,select,textarea{font-size:1.1rem;min-height:54px}
+      label{font-size:1.05rem}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="toolbar">
+      <h1>Facturation</h1>
+      <div class="spacer"></div>
+      <button id="themeToggle" class="theme" title="Basculer clair/sombre">🌓</button>
+      <select id="filterStatus" class="btn secondary" title="Filtrer par statut">
+        <option value="">Tous statuts</option>
+        <option value="pending">En attente</option>
+        <option value="sent">Envoyé</option>
+        <option value="paid">Payé</option>
+      </select>
+      <button class="btn secondary" id="emittersBtn" title="Établissements">Établissements</button>
+      <button class="btn secondary" id="clientsBtn">Clients</button>
+      <button class="btn" id="newInvoiceBtn">Nouvelle facture</button>
+    </div>
+
+    <section class="grid-3">
+      <div class="card"><h3>Total TTC</h3><div class="value kpi" id="kpi_ttc">0 €</div></div>
+      <div class="card"><h3>TVA</h3><div class="value kpi" id="kpi_tva">0 €</div></div>
+      <div class="card"><h3>Aujourd’hui</h3><div class="value kpi" id="kpi_today">0 €</div></div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h3>Historique</h3>
+      <div class="toolbar" style="margin:8px 0 0">
+        <input id="search" placeholder="Rechercher client, n° facture, notes…" />
+        <button class="btn ghost" id="clearFilters">Réinitialiser</button>
+      </div>
+      <div class="table-wrap">
+        <table id="invoicesTable">
+          <thead><tr><th>Date</th><th>Client</th><th>N°</th><th>Site</th><th class="right">HT / TVA / TTC</th><th>Échéance</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== MODAL: FACTURE (WIZARD 3 ÉTAPES) ===== -->
+  <div id="wiz" class="overlay" aria-hidden="true">
+    <div class="modal">
+      <div class="title-row">
+        <div style="display:flex;gap:.8rem;align-items:center">
+          <h3 style="margin:0;color:var(--ink)">Nouvelle facture</h3>
+          <ol id="wizSteps" class="stepper">
+            <li data-s="1" style="font-weight:700">1. Infos</li>
+            <li data-s="2">2. Client</li>
+            <li data-s="3">3. Lignes</li>
+          </ol>
+        </div>
+        <button class="btn secondary" id="wizCloseX" type="button">✕</button>
+      </div>
+
+      <form id="wizForm" class="grid" novalidate>
+        <fieldset data-step="1" style="border:0;padding:0;margin:0">
+          <div class="title">Infos facture</div>
+          <div><label>Date *</label><input id="inv_date" type="date" required></div>
+          <div><label>Échéance *</label><input id="inv_due" type="date" required></div>
+          <div style="grid-column:1/-1"><label>Date de livraison</label><input id="inv_delivery" type="date"></div>
+          <div><label>Site *</label><select id="inv_site" required></select></div>
+          <div><label>N° facture *</label><input id="inv_number" required></div>
+          <div><label>Paiement *</label>
+            <select id="inv_payment_terms" required>
+              <option value="15">Sous 15 jours</option>
+              <option value="30" selected>Sous 30 jours</option>
+              <option value="45">Sous 45 jours</option>
+            </select>
+          </div>
+          <div style="grid-column:1/-1" id="emitterBlock">
+            <div class="title" style="font-weight:700;color:var(--ink)">Émetteur (automatique selon site)</div>
+            <div id="emitterSummary" class="summary" style="display:none"></div>
+            <div id="emitterForm" class="grid">
+              <div><label>Raison sociale *</label><input id="emit_name"></div>
+              <div><label>Email</label><input id="emit_email" type="email"></div>
+              <div><label>Téléphone</label><input id="emit_phone"></div>
+              <div><label>Adresse *</label><input id="emit_addr"></div>
+              <div><label>Code postal</label><input id="emit_zip"></div>
+              <div><label>Ville</label><input id="emit_city"></div>
+              <div><label>Pays</label><input id="emit_country" placeholder="France"></div>
+              <div><label>SIRET</label><input id="emit_siret"></div>
+              <div><label>N° TVA</label><input id="emit_vat"></div>
+              <div><label>IBAN</label><input id="emit_iban" placeholder="FR.."></div>
+              <div><label>BIC</label><input id="emit_bic" placeholder="BANKFRPP"></div>
+              <div><label>Conditions de paiement</label><input id="emit_terms" placeholder="30 jours fin de mois"></div>
+              <div style="grid-column:1/-1"><label>Notes pied de facture</label><textarea id="emit_footer" rows="2" placeholder="Pénalités, mentions légales, etc."></textarea></div>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px"><button class="btn secondary" id="editEmitters" type="button">Gérer les établissements…</button></div>
+          </div>
+        </fieldset>
+
+        <fieldset data-step="2" style="display:none;border:0;padding:0;margin:0">
+          <div class="title" style="font-weight:700;color:var(--ink)">Client</div>
+          <div><label>Client *</label><input id="inv_client" list="clientsDL" placeholder="Commence à taper…" required><datalist id="clientsDL"></datalist></div>
+          <div><label>Email</label><input id="inv_email" type="email" placeholder="client@exemple.com"></div>
+          <div class="title" style="margin-top:6px;font-weight:700;color:var(--ink)">Détails du client sélectionné</div>
+          <div class="grid" id="clientInline" style="grid-column:1/-1">
+            <div><label>Adresse</label><input id="cli_inline_addr"></div>
+            <div><label>SIRET</label><input id="cli_inline_siret"></div>
+            <div><label>N° TVA</label><input id="cli_inline_vat"></div>
+            <div><label>Email (client)</label><input id="cli_inline_email" type="email"></div>
+            <div style="grid-column:1/-1;display:flex;gap:8px"><button type="button" id="cliInlineSave" class="btn secondary">Mettre à jour le client</button></div>
+          </div>
+        </fieldset>
+
+        <fieldset data-step="3" style="display:none;border:0;padding:0;margin:0">
+          <div class="title" style="font-weight:700;color:var(--ink)">Produits / Services</div>
+          <div><label>Montant HT *</label><input id="inv_ht" type="number" step="0.01" min="0" value="0" required></div>
+          <div><label>TVA *</label><select id="inv_vat" required><option value="0">0%</option><option value="0.055">5.5%</option><option value="0.10" selected>10%</option><option value="0.20">20%</option></select></div>
+          <div style="grid-column:1/-1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:.25rem 0 .5rem 0"><strong>Lignes</strong><button type="button" class="btn secondary" id="addItemBtn">Ajouter une ligne</button></div>
+            <div id="inv_items"></div>
+            <div id="items_totals" style="text-align:right;color:#64748b;font-weight:600"></div>
+          </div>
+          <div style="grid-column:1/-1"><label>Notes</label><textarea id="inv_notes" rows="2" placeholder="Notes…"></textarea></div>
+        </fieldset>
+      </form>
+
+      <div style="display:flex;gap:.6rem;justify-content:space-between;margin-top:.9rem">
+        <div style="display:flex;gap:.6rem"><button class="btn secondary" id="prev" type="button">Étape précédente</button><button class="btn" id="next" type="button">Étape suivante</button></div>
+        <div style="display:flex;gap:.6rem"><button class="btn secondary" id="wizCancel" type="button">Annuler</button><button class="btn" id="wizSave" type="button" style="display:none">Enregistrer</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: CLIENTS ===== -->
+  <div id="clientsModal" class="overlay" aria-hidden="true">
+    <div class="modal">
+      <div class="title-row"><h3 style="margin:0;color:var(--ink)">Clients</h3><button class="btn secondary" id="clientsCloseX" type="button">✕</button></div>
+      <div class="grid">
+        <div><label>Nom *</label><input id="cli_name"></div>
+        <div><label>Email</label><input id="cli_email" type="email"></div>
+        <div style="grid-column:1/-1"><label>Adresse</label><input id="cli_addr"></div>
+        <div><label>N° TVA</label><input id="cli_vatnum"></div>
+        <div><label>SIRET</label><input id="cli_siret"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin:.75rem 0">
+        <button class="btn" id="clientAddBtn" type="button">Ajouter / Mettre à jour</button>
+        <button class="btn danger" id="clientDeleteBtn" type="button">Supprimer</button>
+        <button class="btn secondary" id="clientsClose" type="button">Fermer</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Nom</th><th>Email</th><th>Adresse</th><th>N° TVA</th><th>SIRET</th><th>Actions</th></tr></thead><tbody id="clientsTBody"></tbody></table>
+      </div>
+      <div class="card" style="margin-top:8px">
+        <h4 style="margin:12px;color:var(--ink);margin-top:0">Historique du client</h4>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>N°</th><th>Site</th><th class='right'>TTC</th><th>Statut</th></tr></thead><tbody id="clientInvTBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: ÉTABLISSEMENTS ===== -->
+  <div id="emittersModal" class="overlay" aria-hidden="true">
+    <div class="modal">
+      <div class="title-row"><h3 style="margin:0;color:var(--ink)">Établissements</h3><button class="btn secondary" id="emittersCloseX" type="button">✕</button></div>
+      <div class="grid">
+        <div><label>Site *</label><input id="site_name" placeholder="ex: Vitry"></div>
+        <div><label>Alias</label><input id="site_alias" placeholder="Commercial"></div>
+        <div style="grid-column:1/-1"><label>Raison sociale *</label><input id="em_name"></div>
+        <div style="grid-column:1/-1"><label>Adresse *</label><input id="em_addr"></div>
+        <div><label>CP</label><input id="em_zip"></div>
+        <div><label>Ville</label><input id="em_city"></div>
+        <div><label>Pays</label><input id="em_country" placeholder="France"></div>
+        <div><label>Email</label><input id="em_email" type="email"></div>
+        <div><label>Téléphone</label><input id="em_phone"></div>
+        <div><label>SIRET</label><input id="em_siret"></div>
+        <div><label>N° TVA</label><input id="em_vat"></div>
+        <div><label>IBAN</label><input id="em_iban" placeholder="FR.."></div>
+        <div><label>BIC</label><input id="em_bic"></div>
+        <div style="grid-column:1/-1"><label>Conditions de paiement</label><input id="em_terms" placeholder="30 jours fin de mois"></div>
+        <div style="grid-column:1/-1"><label>Notes pied de facture</label><textarea id="em_footer" rows="2"></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin:.75rem 0"><button class="btn" id="emSave">Créer / Mettre à jour</button><button class="btn danger" id="emDelete">Supprimer</button><button class="btn secondary" id="emittersClose">Fermer</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Site</th><th>Alias</th><th>Entreprise</th><th>IBAN</th></tr></thead><tbody id="emittersTBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: DÉTAIL FACTURE ===== -->
+  <div id="invoiceDetail" class="overlay" aria-hidden="true">
+    <div class="modal">
+      <div class="title-row"><h3 id="detTitle" style="margin:0;color:var(--ink)">Facture</h3><button class="btn secondary" id="detCloseX" type="button">✕</button></div>
+      <div id="detContent" class="grid"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+        <select id="detStatus" class="btn secondary"><option value="pending">En attente</option><option value="sent">Envoyé</option><option value="paid">Payé</option></select>
+        <button class="btn secondary" id="detPDF">Exporter PDF</button>
+        <button class="btn" id="detEdit">Modifier</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    // ===== Utils
+    const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+    const fmt=n=>(Number(n)||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+    const uid=()=>'id-'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+    const DB_CLIENTS='sc_clients', DB_INVOICES='sc_invoices', DB_EMITTERS='sc_emitters';
+    const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch(e){return d}}; const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+    // === Autosize textareas (confort)
+    function autoGrow(el){ if(!el) return; el.style.height='auto'; const max=Math.floor(window.innerHeight*0.7); el.style.height=Math.min(el.scrollHeight,max)+'px'; }
+    function wireTextareas(){ $$('.modal textarea, textarea').forEach(t=>{ t.style.overflow='hidden'; autoGrow(t); t.removeEventListener('input', t.__grow||(()=>{})); t.__grow=()=>autoGrow(t); t.addEventListener('input', t.__grow); }); }
+
+    // ===== Theme
+    const themeKey='sc_theme';
+    const saved=localStorage.getItem(themeKey); if(saved) document.documentElement.setAttribute('data-theme', saved);
+    $('#themeToggle').addEventListener('click',()=>{ const cur=document.documentElement.getAttribute('data-theme')||''; const next=cur==='dark'?'' :'dark'; if(next) document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme'); localStorage.setItem(themeKey, next); });
+
+    // ===== Emitters
+    function fillSites(){ const sel=$('#inv_site'); if(sel){ const em=get(DB_EMITTERS,{}); const sites=Object.keys(em); sel.innerHTML=''; (sites.length?sites:['Vitry','Raincy']).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); }); }
+      onSiteChange(); }
+    function onSiteChange(){ const em=get(DB_EMITTERS,{}); const site=$('#inv_site')?.value; const e=em[site]; const sum=$('#emitterSummary'), form=$('#emitterForm'); const has=e && Object.keys(e).length; if(sum&&form){ if(has){ sum.style.display='block'; form.style.display='none'; sum.innerHTML=`<strong>${e.name||''}</strong><br>${e.addr||''}${e.zip?' '+e.zip:''}${e.city?' '+e.city:''}${e.country?' — '+e.country:''}<br>${e.email||''}${e.phone?' — '+e.phone:''}<br>SIRET: ${e.siret||''} — TVA: ${e.vat||''}<br>IBAN: <b>${e.iban||''}</b> — BIC: ${e.bic||''}`; } else { sum.style.display='none'; form.style.display='grid'; }
+      if(e){ ['name','email','phone','addr','zip','city','country','siret','vat','iban','bic','terms','footer'].forEach(k=>{ const el=$('#emit_'+k); if(el) el.value=e[k]||''; }); } }
+    }
+    document.addEventListener('change',e=>{ if(e.target.id==='inv_site') onSiteChange(); });
+
+    function openEmitters(){ $('#emittersModal').setAttribute('aria-hidden','false'); refreshEmittersUI(); wireTextareas(); }
+    function closeEmitters(){ $('#emittersModal').setAttribute('aria-hidden','true'); }
+    function refreshEmittersUI(){ const tb=$('#emittersTBody'); if(!tb) return; tb.innerHTML=''; const em=get(DB_EMITTERS,{}); Object.entries(em).forEach(([site,rec])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${site}</td><td>${rec.alias||''}</td><td>${rec.name||''}</td><td>${rec.iban||''}</td>`; tr.addEventListener('click',()=>{ $('#site_name').value=site; $('#site_alias').value=rec.alias||''; $('#em_name').value=rec.name||''; $('#em_addr').value=rec.addr||''; $('#em_zip').value=rec.zip||''; $('#em_city').value=rec.city||''; $('#em_country').value=rec.country||''; $('#em_email').value=rec.email||''; $('#em_phone').value=rec.phone||''; $('#em_siret').value=rec.siret||''; $('#em_vat').value=rec.vat||''; $('#em_iban').value=rec.iban||''; $('#em_bic').value=rec.bic||''; $('#em_terms').value=rec.terms||''; $('#em_footer').value=rec.footer||''; }); tb.appendChild(tr); }); }
+
+    $('#emittersBtn').addEventListener('click',openEmitters);
+    $('#emittersClose').addEventListener('click',closeEmitters);
+    $('#emittersCloseX').addEventListener('click',closeEmitters);
+    $('#editEmitters').addEventListener('click',openEmitters);
+    $('#emSave').addEventListener('click',()=>{ const site=($('#site_name').value||'').trim(); if(!site){alert('Site requis');return} const rec={alias:$('#site_alias').value||'', name:$('#em_name').value||'', addr:$('#em_addr').value||'', zip:$('#em_zip').value||'', city:$('#em_city').value||'', country:$('#em_country').value||'', email:$('#em_email').value||'', phone:$('#em_phone').value||'', siret:$('#em_siret').value||'', vat:$('#em_vat').value||'', iban:$('#em_iban').value||'', bic:$('#em_bic').value||'', terms:$('#em_terms').value||'', footer:$('#em_footer').value||''}; const em=get(DB_EMITTERS,{}); em[site]=rec; set(DB_EMITTERS,em); refreshEmittersUI(); fillSites(); alert('Établissement enregistré'); });
+    $('#emDelete').addEventListener('click',()=>{ const site=($('#site_name').value||'').trim(); if(!site) return; const em=get(DB_EMITTERS,{}); delete em[site]; set(DB_EMITTERS,em); refreshEmittersUI(); fillSites(); });
+
+    // ===== Clients
+    function getClients(){ return get(DB_CLIENTS,[]);} function setClientsDb(v){ set(DB_CLIENTS,v);} function upsertClient(rec){ const L=getClients(); const i=L.findIndex(c=>c.name===rec.name); if(i>=0) L[i]=rec; else L.push(rec); setClientsDb(L); }
+    function refreshClientsDL(){ const dl=$('#clientsDL'); if(!dl) return; dl.innerHTML=''; getClients().forEach(c=>{ const o=document.createElement('option'); o.value=c.name; dl.appendChild(o); }); }
+
+    function openClients(){ $('#clientsModal').setAttribute('aria-hidden','false'); refreshClientsDL(); refreshClientsTable(); }
+    function closeClients(){ $('#clientsModal').setAttribute('aria-hidden','true'); }
+
+    $('#clientsBtn').addEventListener('click',openClients);
+    $('#clientsClose').addEventListener('click',closeClients);
+    $('#clientsCloseX').addEventListener('click',closeClients);
+    $('#clientAddBtn').addEventListener('click',()=>{ const rec={name:$('#cli_name').value.trim(),email:$('#cli_email').value.trim(),addr:$('#cli_addr').value.trim(),vatn:$('#cli_vatnum').value.trim(),siret:$('#cli_siret').value.trim()}; if(!rec.name){ alert('Nom client obligatoire'); return; } upsertClient(rec); refreshClientsDL(); refreshClientsTable(); alert('Client enregistré'); });
+    $('#clientDeleteBtn').addEventListener('click',()=>{ const name=$('#cli_name').value.trim(); if(!name) return; if(confirm('Supprimer ce client ?')){ setClientsDb(getClients().filter(c=>c.name!==name)); refreshClientsDL(); refreshClientsTable(); }});
+
+    function renderActionButtons(c){ const wrap=document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='6px';
+      const b1=document.createElement('button'); b1.className='mini'; b1.textContent='Télécharger'; b1.title='Télécharger PDF'; b1.addEventListener('click',()=>exportClientPDF(c.name));
+      const b2=document.createElement('button'); b2.className='mini'; b2.textContent='Historique'; b2.title='Voir / éditer'; b2.addEventListener('click',()=>{ $('#cli_name').value=c.name||''; $('#cli_email').value=c.email||''; $('#cli_addr').value=c.addr||''; $('#cli_vatnum').value=c.vatn||''; $('#cli_siret').value=c.siret||''; renderClientInvoices(c.name); });
+      const b3=document.createElement('button'); b3.className='mini'; b3.textContent='+'; b3.title='Nouvelle facture'; b3.addEventListener('click',()=>newInvoiceForClient(c.name));
+      wrap.append(b1,b2,b3); return wrap; }
+
+    function refreshClientsTable(){ const tb=$('#clientsTBody'); const tb2=$('#clientInvTBody'); if(tb) tb.innerHTML=''; if(tb2) tb2.innerHTML=''; const L=getClients(); L.forEach(c=>{ const tr=document.createElement('tr'); const actions=document.createElement('td'); actions.appendChild(renderActionButtons(c)); tr.innerHTML=`<td>${c.name}</td><td>${c.email||''}</td><td>${c.addr||''}</td><td>${c.vatn||''}</td><td>${c.siret||''}</td>`; tr.appendChild(actions); tr.addEventListener('click',e=>{ if(e.target.closest('.mini')) return; $('#cli_name').value=c.name||''; $('#cli_email').value=c.email||''; $('#cli_addr').value=c.addr||''; $('#cli_vatnum').value=c.vatn||''; $('#cli_siret').value=c.siret||''; renderClientInvoices(c.name); }); tb.appendChild(tr); }); }
+
+    function renderClientInvoices(name){ const tb2=$('#clientInvTBody'); if(!tb2) return; tb2.innerHTML=''; get(DB_INVOICES,[]).filter(i=>i.client===name).forEach(inv=>{ const ttc=(inv.items||[]).reduce((s,it)=> s+((+it.price_ttc||0)*(+it.qty||0)),0); const tr=document.createElement('tr'); tr.innerHTML=`<td>${inv.date||''}</td><td>${inv.number||''}</td><td>${inv.site||''}</td><td class='right'>${fmt(ttc)}</td><td>${badge(inv.status||'pending')}</td>`; tb2.appendChild(tr); }); }
+
+    // Inline client on select in wizard
+    $('#inv_client').addEventListener('change',()=>{ const c=getClients().find(x=>x.name===$('#inv_client').value); $('#cli_inline_addr').value=c?.addr||''; $('#cli_inline_siret').value=c?.siret||''; $('#cli_inline_vat').value=c?.vatn||''; $('#cli_inline_email').value=c?.email||''; $('#inv_email').value=c?.email||$('#inv_email').value; });
+    $('#cliInlineSave').addEventListener('click',()=>{ const name=$('#inv_client').value.trim(); if(!name){ alert('Choisis un client'); return; } const rec={ name, addr:$('#cli_inline_addr').value.trim(), siret:$('#cli_inline_siret').value.trim(), vatn:$('#cli_inline_vat').value.trim(), email:$('#cli_inline_email').value.trim() }; upsertClient(Object.assign(getClients().find(c=>c.name===name)||{name}, rec)); refreshClientsDL(); alert('Client mis à jour'); });
+
+    // ===== Invoices
+    function compute(items){ let ht=0,tva=0,ttc=0; (items||[]).forEach(it=>{ const q=+it.qty||0; const pttc=+it.price_ttc||0; const vat=+it.vat||0; const pht=pttc/(1+vat); ht+=q*pht; tva+=q*(pttc-pht); ttc+=q*pttc; }); return {ht,tva,ttc}; }
+    function getInvoices(){ return get(DB_INVOICES,[]);} function setInvoicesDb(v){ set(DB_INVOICES,v);} 
+    function badge(s){const m={pending:'pending',sent:'sent',paid:'paid'};const t={pending:'En attente',sent:'Envoyé',paid:'Payé'};return `<span class="badge ${m[s]||'pending'}">${t[s]||'En attente'}</span>`}
+
+    function renderInvoicesTable(){ const tbody=$('#invoicesTable tbody'); if(!tbody) return; const q=($('#search').value||'').toLowerCase(); const status=$('#filterStatus').value||''; const list=getInvoices().filter(inv=>{ const hay=(inv.client+' '+inv.number+' '+(inv.notes||'')).toLowerCase(); const okQ=!q||hay.includes(q); const okS=!status||(inv.status||'pending')===status; return okQ&&okS; }); tbody.innerHTML=''; let totalTTC=0,tvaTot=0,dayTotal=0; const today=new Date().toISOString().slice(0,10); list.forEach(inv=>{ const {ht,tva,ttc}=compute(inv.items); totalTTC+=ttc; tvaTot+=tva; if((inv.date||'').slice(0,10)===today) dayTotal+=ttc; const tr=document.createElement('tr'); tr.innerHTML=`<td>${inv.date||''}</td><td>${inv.client||''}</td><td>${inv.number||''}</td><td>${inv.site||''}</td><td class='right'>${fmt(ht)} / ${fmt(tva)} / ${fmt(ttc)}</td><td>${inv.due||''}</td><td>${badge(inv.status||'pending')}</td><td><button class='btn secondary row-edit' data-id='${inv.id}'>Détails</button></td>`; tbody.appendChild(tr); }); $('#kpi_ttc').textContent=fmt(totalTTC); $('#kpi_tva').textContent=fmt(tvaTot); $('#kpi_today').textContent=fmt(dayTotal); }
+
+    document.addEventListener('click',e=>{ const b=e.target.closest?.('.row-edit'); if(!b) return; const id=b.dataset.id; const inv=getInvoices().find(x=>x.id===id); if(!inv) return; openInvoiceDetail(inv); });
+
+    function openInvoiceDetail(inv){ const {ht,tva,ttc}=compute(inv.items); $('#detTitle').textContent=`Facture ${inv.number}`; $('#detContent').innerHTML=`<div><label>Client</label><div>${inv.client||''}</div></div><div><label>Date</label><div>${inv.date||''}</div></div><div><label>Échéance</label><div>${inv.due||''}</div></div><div><label>Site</label><div>${inv.site||''}</div></div><div class='title' style='grid-column:1/-1;font-weight:700;color:var(--ink)'>Montants</div><div><label>HT</label><div>${fmt(ht)}</div></div><div><label>TVA</label><div>${fmt(tva)}</div></div><div><label>TTC</label><div>${fmt(ttc)}</div></div><div class='title' style='grid-column:1/-1;font-weight:700;color:var(--ink)'>Notes</div><div style='grid-column:1/-1'>${(inv.notes||'').replace(/\n/g,'<br>')}</div>`; $('#detStatus').value=inv.status||'pending'; $('#detStatus').onchange=()=>{inv.status=$('#detStatus').value; setInvoicesDb(getInvoices().map(x=>x.id===inv.id?inv:x)); renderInvoicesTable();}; $('#detEdit').onclick=()=>{ closeInvoiceDetail(); loadInvoiceIntoWizard(inv); }; $('#detPDF').onclick=()=> exportInvoicePDF(inv); $('#invoiceDetail').setAttribute('aria-hidden','false'); }
+    function closeInvoiceDetail(){ $('#invoiceDetail').setAttribute('aria-hidden','true'); }
+    $('#detCloseX').addEventListener('click',closeInvoiceDetail);
+
+    function exportInvoicePDF(inv){ const {ht,tva,ttc}=compute(inv.items); const em=get(DB_EMITTERS,{}); const e=em[inv.site]||{}; const client=get(DB_CLIENTS,[]).find(c=>c.name===inv.client)||{}; const rows=(inv.items||[]).map(it=>`<tr><td>${it.desc||''}</td><td class='right'>${it.qty||0}</td><td class='right'>${fmt(it.price_ttc/(1+(it.vat||0)))}</td><td class='right'>${fmt(it.price_ttc)}</td></tr>`).join(''); const payDays = Number(inv.payment_days||$('#inv_payment_terms')?.value||30); const legal = `Paiement sous ${payDays} jours. Pénalités de retard: taux légal majoré (art. L441-10 C. com.) et indemnité de recouvrement de 40€.`; const w=window.open('','_blank'); if(!w){alert('Popup bloquée');return} const html=`<!doctype html><html><head><meta charset='utf-8'><title>${inv.number}</title><style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:36px;color:#0f172a} h1{margin:0 0 6px} h2{margin:20px 0 8px;font-size:16px} .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px} table{width:100%;border-collapse:collapse;margin-top:12px} th,td{border-top:1px solid #e5e7eb;padding:8px;text-align:left} th{background:#f8fafc} .right{text-align:right} .muted{color:#64748b}</style></head><body><h1>Facture ${inv.number}</h1><div class='muted'>Date: ${inv.date||''} — Échéance: ${inv.due||''}</div><div class='grid'><div><h2>Émetteur</h2><div><strong>${e.name||''}</strong><br>${e.addr||''}${e.zip?' '+e.zip:''}${e.city?' '+e.city:''}${e.country?' — '+e.country:''}<br>${e.email||''}${e.phone?' — '+e.phone:''}<br>SIRET: ${e.siret||''} — TVA: ${e.vat||''}<br>IBAN: <strong>${e.iban||''}</strong> — BIC: ${e.bic||''}</div></div><div><h2>Client</h2><div><strong>${inv.client||''}</strong><br>${client.addr||''}<br>${client.email||''}<br>SIRET: ${client.siret||''} — TVA: ${client.vatn||''}</div></div></div><h2>Détails</h2><table><thead><tr><th>Libellé</th><th class='right'>Qté</th><th class='right'>PU HT</th><th class='right'>PU TTC</th></tr></thead><tbody>${rows}</tbody></table><h2>Totaux</h2><table><tbody><tr><td>HT</td><td class='right'>${fmt(ht)}</td></tr><tr><td>TVA</td><td class='right'>${fmt(tva)}</td></tr><tr><td><strong>TTC</strong></td><td class='right'><strong>${fmt(ttc)}</strong></td></tr></tbody></table><h2>Paiement</h2><div>${legal}${e.terms?'<br>Conditions: '+e.terms:''}</div>${e.footer?'<div class="muted" style="margin-top:10px">'+e.footer.replace(/</g,'&lt;')+'</div>':''}</body></html>`; w.document.open(); w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>{try{w.print()}catch(_){}} ,50); }
+
+    function exportClientPDF(name){ const c=getClients().find(x=>x.name===name)||{}; const invs=get(DB_INVOICES,[]).filter(i=>i.client===name); const rows=invs.map(inv=>{ const ttc=(inv.items||[]).reduce((s,it)=>s+((+it.price_ttc||0)*(+it.qty||0)),0); return `<tr><td>${inv.date||''}</td><td>${inv.number||''}</td><td>${inv.site||''}</td><td style='text-align:right'>${fmt(ttc)}</td><td>${inv.status||'pending'}</td></tr>`; }).join(''); const total=invs.reduce((s,inv)=>s+(inv.items||[]).reduce((ss,it)=>ss+((+it.price_ttc||0)*(+it.qty||0)),0),0); const w=window.open('','_blank'); if(!w){alert('Popup bloquée');return} const html=`<!doctype html><html><head><meta charset='utf-8'><title>Client ${name}</title><style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:36px;color:#0f172a} h1{margin:0 0 6px} h2{margin:18px 0 8px;font-size:16px} table{width:100%;border-collapse:collapse;margin-top:10px} th,td{border-top:1px solid #e5e7eb;padding:8px;text-align:left} th{background:#f8fafc}</style></head><body><h1>Fiche client — ${name}</h1><div>Email: ${c.email||''} — TVA: ${c.vatn||''} — SIRET: ${c.siret||''}</div><div>Adresse: ${c.addr||''}</div><h2>Historique des factures</h2><table><thead><tr><th>Date</th><th>N°</th><th>Site</th><th style='text-align:right'>TTC</th><th>Statut</th></tr></thead><tbody>${rows}</tbody></table><h2>Total TTC cumulé</h2><div style='font-weight:700'>${fmt(total)}</div></body></html>`; w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>{try{w.print()}catch(_){}} ,50); }
+
+    // ===== Wizard (invoice)
+    const wiz=$('#wiz'); let step=1, editingId=null; function setStep(n){ step=n; $$('[data-step]').forEach(p=>p.style.display=(+p.dataset.step===step?'grid':'none')); $$('#wizSteps li').forEach(li=>{const s=+li.dataset.s; li.style.fontWeight=(s===step?'700':'400'); }); $('#prev').disabled=step===1; $('#next').style.display=(step===3?'none':'inline-flex'); $('#wizSave').style.display=(step===3?'inline-flex':'none'); }
+    function addItemRow(data={desc:'',qty:1,price_ttc:0,vat:$('#inv_vat')?.value||0.10}){ const wrap=$('#inv_items'); const row=document.createElement('div'); row.className='row'; row.innerHTML=`<input class="it-desc" placeholder="Dénomination" value="${data.desc||''}"><input class="it-qty" type="number" min="0" step="1" value="${data.qty||1}"><input class="it-price" type="number" min="0" step="0.01" value="${data.price_ttc||0}"><select class="it-vat"><option value="0">0%</option><option value="0.055">5.5%</option><option value="0.10" ${String(data.vat||'')==='0.1'?'selected':''}>10%</option><option value="0.20">20%</option></select><button type="button" class="btn secondary it-del">Supprimer</button>`; wrap.appendChild(row); row.querySelector('.it-del').addEventListener('click',()=>{ row.remove(); computeWizardTotals(); }); ['.it-qty','.it-price','.it-vat'].forEach(s=> row.querySelector(s).addEventListener('input', computeWizardTotals)); computeWizardTotals(); }
+    $('#addItemBtn').addEventListener('click',()=> addItemRow());
+    function computeWizardTotals(){ const items=$$('.row', $('#inv_items')).map(r=>({qty:+r.querySelector('.it-qty').value||0, price_ttc:+r.querySelector('.it-price').value||0, vat:+r.querySelector('.it-vat').value||0})); const {ht,tva,ttc}=compute(items); $('#items_totals').textContent=`Sous-total HT: ${fmt(ht)} — TVA: ${fmt(tva)} — Total TTC: ${fmt(ttc)}`; $('#inv_ht').value=ht.toFixed(2); }
+    function seedDefaults(){ const today=new Date().toISOString().slice(0,10); $('#inv_date').value=today; $('#inv_due').value=today; if(!editingId){ const seq=(+localStorage.getItem('sc_inv_seq')||0)+1; localStorage.setItem('sc_inv_seq',String(seq)); const y=new Date().getFullYear(); $('#inv_number').value=`FA-${y}-${String(seq).padStart(3,'0')}`; } if(!$('#inv_items').children.length) addItemRow(); computeWizardTotals(); }
+    function clearWizard(){ editingId=null; $('#wizForm').reset?.(); $('#inv_items').innerHTML=''; }
+    function loadInvoiceIntoWizard(inv){ clearWizard(); editingId=inv.id; $('#inv_date').value=inv.date||''; $('#inv_due').value=inv.due||''; $('#inv_delivery').value=inv.delivery||''; fillSites(); $('#inv_site').value=inv.site||''; onSiteChange(); $('#inv_number').value=inv.number||''; $('#inv_client').value=inv.client||''; $('#inv_email').value=inv.email||''; $('#inv_vat').value=String(inv.vatRate||0.10); $('#inv_payment_terms').value=String(inv.payment_days||30); (inv.items||[]).forEach(addItemRow); computeWizardTotals(); setStep(1); wiz.setAttribute('aria-hidden','false'); wireTextareas(); }
+    function collectWizard(){ return { id:editingId||uid(), number:($('#inv_number').value||'').trim(), date:$('#inv_date').value, due:$('#inv_due').value, delivery:$('#inv_delivery').value, site:$('#inv_site').value, client:($('#inv_client').value||'').trim(), email:($('#inv_email').value||'').trim(), vatRate:+($('#inv_vat').value||0.10), payment_days:+($('#inv_payment_terms').value||30), notes:($('#inv_notes').value||'').trim(), status:'pending', items: $$('.row', $('#inv_items')).map(r=>({desc:r.querySelector('.it-desc').value, qty:+r.querySelector('.it-qty').value||0, price_ttc:+r.querySelector('.it-price').value||0, vat:+r.querySelector('.it-vat').value||0})) }; }
+
+    $('#newInvoiceBtn').addEventListener('click',()=>{ clearWizard(); fillSites(); refreshClientsDL(); seedDefaults(); setStep(1); wiz.setAttribute('aria-hidden','false'); wireTextareas(); });
+    $('#prev').addEventListener('click',()=> setStep(Math.max(1,step-1)));
+    $('#next').addEventListener('click',()=> setStep(Math.min(3,step+1)));
+    $('#wizCloseX').addEventListener('click',()=> wiz.setAttribute('aria-hidden','true'));
+    $('#wizCancel').addEventListener('click',()=> wiz.setAttribute('aria-hidden','true'));
+    $('#wizSave').addEventListener('click',()=>{ const inv=collectWizard(); if(!inv.client){ alert('Sélectionne un client (étape 2)'); setStep(2); return;} const L=get(DB_INVOICES,[]); const i=L.findIndex(x=>x.id===inv.id||x.number===inv.number); if(i>=0) L[i]=Object.assign(L[i],inv); else L.push(inv); set(DB_INVOICES,L); wiz.setAttribute('aria-hidden','true'); renderInvoicesTable(); });
+
+    function newInvoiceForClient(name){ closeClients(); clearWizard(); fillSites(); refreshClientsDL(); seedDefaults(); $('#inv_client').value=name; const c=getClients().find(x=>x.name===name)||{}; $('#inv_email').value=c.email||''; $('#cli_inline_addr').value=c.addr||''; $('#cli_inline_siret').value=c.siret||''; $('#cli_inline_vat').value=c.vatn||''; setStep(2); wiz.setAttribute('aria-hidden','false'); wireTextareas(); }
+
+    // ===== Filters + search
+    $('#filterStatus').addEventListener('change',renderInvoicesTable); $('#search').addEventListener('input',renderInvoicesTable); $('#clearFilters').addEventListener('click',()=>{ $('#filterStatus').value=''; $('#search').value=''; renderInvoicesTable(); });
+
+    // ===== Detail PDF button wiring already done in openInvoiceDetail
+
+    // ===== Seed demo (optional): append #test to the URL
+    if(location.hash.includes('test')){
+      if(!Object.keys(get(DB_EMITTERS,{})).length){ set(DB_EMITTERS,{Vitry:{alias:'VE',name:'Société Exemple',addr:'10 rue Démo, 75000 Paris',zip:'75000',city:'Paris',country:'France',email:'factures@exemple.com',phone:'+33 1 23 45 67 89',siret:'123 456 789 00012',vat:'FRXX999999',iban:'FR76 3000 4000 5000 6000 7000 899',bic:'PSSTFRPP',terms:'30 jours fin de mois',footer:'Merci pour votre confiance.'}}); }
+      if(!get(DB_CLIENTS,[]).length){ set(DB_CLIENTS,[{name:'Client Test',email:'test@exemple.com',addr:'1 rue Démo, Paris',vatn:'FRXX',siret:'123'}]); }
+      if(!get(DB_INVOICES,[]).length){ set(DB_INVOICES,[{id:uid(),number:'FA-TEST-001',date:new Date().toISOString().slice(0,10),due:new Date().toISOString().slice(0,10),site:'Vitry',client:'Client Test',email:'test@exemple.com',vatRate:0.10,status:'pending',payment_days:30,items:[{desc:'Prestation A',qty:2,price_ttc:60,vat:0.20}],notes:'Facture démo'}]); }
+    }
+
+    // ===== Boot
+    fillSites(); refreshClientsDL(); renderInvoicesTable(); wireTextareas();
+
+  })();
+  </script>
+</body>
+</html>
